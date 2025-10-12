@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        test-config:
+          # run .net integration tests
+          - name: "NET Framework Tests"
+            skip-netcore: true
+            flaky-tests: false
+          # run .net core integration tests  
+          - name: "NET Core Tests"
+            skip-net: true
+            flaky-tests: false
+          # just flaky tests
+          - name: "Flaky Tests"
+            skip-netcore: false
+            skip-net: false
+            flaky-tests: true
+    
+    continue-on-error: ${{ matrix.test-config.flaky-tests }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    
+    # - name: Configure Git
+    #   run: git config --global core.autocrlf input
+    
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: global.json
+    
+    - name: Build Package
+      run: .\build.cmd BuildPackage
+      env:
+        SkipIntegrationTestsNetCore: ${{ matrix.test-config.skip-netcore }}
+        SkipIntegrationTestsNet: ${{ matrix.test-config.skip-net }}
+        PAKET_TESTSUITE_FLAKYTESTS: ${{ matrix.test-config.flaky-tests }}
+    
+    - name: Upload bin artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: bin-${{ matrix.test-config.name }}
+        path: bin/
+        if-no-files-found: warn
+    
+    - name: Upload bin_bootstrapper artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: bin_bootstrapper-${{ matrix.test-config.name }}
+        path: bin_bootstrapper/
+        if-no-files-found: warn
+    
+    - name: Upload NuGet packages
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: nupkgs-${{ matrix.test-config.name }}
+        path: temp/*.nupkg
+        if-no-files-found: warn
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: test-results-${{ matrix.test-config.name }}
+        path: tests_result/**/*.trx
+        if-no-files-found: warn
