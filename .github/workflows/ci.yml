@@ -49,7 +49,8 @@ jobs:
         global-json-file: global.json
     
     - name: Build Package
-      run: .\build.cmd BuildPackage
+      run: build.cmd BuildPackage
+      shell: cmd
       env:
         SkipIntegrationTestsNetCore: ${{ matrix.test-config.skip-netcore }}
         SkipIntegrationTestsNet: ${{ matrix.test-config.skip-net }}
