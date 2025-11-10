@@ -56,7 +56,7 @@ jobs:
     
     - name: Upload bin artifacts
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: (!cancelled())
       with:
         name: bin-${{ matrix.test-config.name }}
         path: bin/
@@ -64,7 +64,7 @@ jobs:
     
     - name: Upload bin_bootstrapper artifacts
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: (!cancelled())
       with:
         name: bin_bootstrapper-${{ matrix.test-config.name }}
         path: bin_bootstrapper/
@@ -72,7 +72,7 @@ jobs:
     
     - name: Upload NuGet packages
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: (!cancelled())
       with:
         name: nupkgs-${{ matrix.test-config.name }}
         path: temp/*.nupkg
@@ -80,8 +80,14 @@ jobs:
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: (!cancelled())
       with:
         name: test-results-${{ matrix.test-config.name }}
         path: tests_result/**/*.trx
         if-no-files-found: warn
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action/windows@v2
+      if: (!cancelled())
+      with:
+        files: test-results/**/*.trx
