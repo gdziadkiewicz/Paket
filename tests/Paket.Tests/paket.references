@@ -7,5 +7,6 @@ NUnit
 NUnit3TestAdapter
 FsCheck
 Microsoft.NETFramework.ReferenceAssemblies.net461
+Quackers.TestLogger
 
 File:FsUnit.fs .
