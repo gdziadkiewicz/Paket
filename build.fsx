@@ -679,6 +679,8 @@ let hasBuildParams buildParams =
 let unlessBuildParams buildParams =
     not (hasBuildParams buildParams)
 
+let isGitHubActions = Fake.EnvironmentHelper.getEnvironmentVarAsBoolOrDefault "GITHUB_ACTIONS" false
+
 Target "All" DoNothing
 
 "Clean"
@@ -687,10 +689,10 @@ Target "All" DoNothing
   ==> "Build"
   ==> "Publish"
   =?> ("RunTests", unlessBuildParams [ "SkipTests"; "SkipUnitTests" ])
-  =?> ("GenerateReferenceDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
-  =?> ("GenerateDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("GenerateReferenceDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("GenerateDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
   ==> "All"
-  =?> ("ReleaseDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("ReleaseDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
 
 "All"
   ==> "MergePaketTool"
