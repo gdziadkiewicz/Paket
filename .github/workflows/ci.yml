@@ -35,14 +35,12 @@ jobs:
     continue-on-error: ${{ matrix.test-config.flaky-tests }}
     
     steps:
+    - name: Configure Git
+      run: git config --global core.autocrlf input
     - name: Checkout
       uses: actions/checkout@v5
       with:
         fetch-depth: 0
-    
-    # - name: Configure Git
-    #   run: git config --global core.autocrlf input
-    
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v5
       with:
