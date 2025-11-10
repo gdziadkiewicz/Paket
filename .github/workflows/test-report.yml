@@ -1,0 +1,43 @@
+name: 'Test Report'
+
+on:
+  workflow_run:
+    workflows: ['CI']                     # runs after CI workflow
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test-config:
+          - name: "NET Framework Tests"
+          - name: "NET Core Tests" 
+          - name: "Flaky Tests"
+    
+    steps:
+    - name: Download test results
+      uses: actions/download-artifact@v5
+      with:
+        name: test-results-${{ matrix.test-config.name }}
+        path: test-results
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+    
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        artifact: test-results-${{ matrix.test-config.name }}
+        name: Test Results (${{ matrix.test-config.name }})
+        path: 'test-results/**/*.trx'
+        reporter: dotnet-trx
+        fail-on-error: false

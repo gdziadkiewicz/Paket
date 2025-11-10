@@ -79,6 +79,8 @@ Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 System.Net.ServicePointManager.SecurityProtocol <- unbox 192 ||| unbox 768 ||| unbox 3072 ||| unbox 48
 
+let isGitHubActions = Fake.EnvironmentHelper.getEnvironmentVarAsBoolOrDefault "GITHUB_ACTIONS" false
+
 // Read additional information from the release notes document
 let releaseNotesData =
     File.ReadAllLines "RELEASE_NOTES.md"
@@ -240,10 +242,12 @@ Target "RunTests" (fun _ ->
                 Project = "tests/Paket.Tests/Paket.Tests.fsproj"
                 Framework = tfm
                 AdditionalArgs =
-                  [ "--filter"; (if testSuiteFilterFlakyTests then "TestCategory=Flaky" else "TestCategory!=Flaky")
+                  [ 
+                    "--filter"; (if testSuiteFilterFlakyTests then "TestCategory=Flaky" else "TestCategory!=Flaky")
                     sprintf "--logger:trx;LogFileName=%s" logFilePath
+                    (if isGitHubActions then "--logger:quackers" else "")
                     "--no-build"
-                    "-v"; "n"]
+                    (if not isGitHubActions then"-v" else ""); (if not isGitHubActions then "n" else "")]
                 ToolPath = dotnetExePath
             })
 
@@ -259,7 +263,9 @@ Target "QuickTest" (fun _ ->
         { c with
             Project = "tests/Paket.Tests/Paket.Tests.fsproj"
             AdditionalArgs =
-              [ "--filter"; (if testSuiteFilterFlakyTests then "TestCategory=Flaky" else "TestCategory!=Flaky") ]
+              [ 
+                "--filter"; (if testSuiteFilterFlakyTests then "TestCategory=Flaky" else "TestCategory!=Flaky")
+                (if isGitHubActions then "--logger:quackers" else "") ]
             ToolPath = dotnetExePath
         })
 )
@@ -270,7 +276,10 @@ Target "QuickIntegrationTests" (fun _ ->
         { c with
             Project = "integrationtests/Paket.IntegrationTests/Paket.IntegrationTests.fsproj"
             AdditionalArgs =
-              [ "--filter"; "TestCategory=scriptgen" ]
+              [
+                "--filter"; "TestCategory=scriptgen"
+                (if isGitHubActions then "--logger:quackers" else "")
+              ]
             TimeOut = TimeSpan.FromMinutes 40.
             ToolPath = dotnetExePath
         })
@@ -338,7 +347,9 @@ Target "RunIntegrationTestsNet" (fun _ ->
             Framework = "net461"
             AdditionalArgs =
               [ "--filter"; (if testSuiteFilterFlakyTests then "TestCategory=Flaky" else "TestCategory!=Flaky")
-                sprintf "--logger:trx;LogFileName=%s" ("tests_result/net/Paket.IntegrationTests/TestResult.trx" |> Path.GetFullPath) ]
+                sprintf "--logger:trx;LogFileName=%s" ("tests_result/net/Paket.IntegrationTests/TestResult.trx" |> Path.GetFullPath)
+                (if isGitHubActions then "--logger:quackers" else "")
+              ]
             TimeOut = TimeSpan.FromMinutes 60.
             ToolPath = dotnetExePath
         })
@@ -687,10 +698,10 @@ Target "All" DoNothing
   ==> "Build"
   ==> "Publish"
   =?> ("RunTests", unlessBuildParams [ "SkipTests"; "SkipUnitTests" ])
-  =?> ("GenerateReferenceDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
-  =?> ("GenerateDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("GenerateReferenceDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("GenerateDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
   ==> "All"
-  =?> ("ReleaseDocs",isLocalBuild && not isMono && not (hasBuildParam "SkipDocs"))
+  =?> ("ReleaseDocs",isLocalBuild && not isGitHubActions && not isMono && not (hasBuildParam "SkipDocs"))
 
 "All"
   ==> "MergePaketTool"
